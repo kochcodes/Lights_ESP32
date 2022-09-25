@@ -7,6 +7,16 @@ BLEManager *bleManager;
 
 long t = 0;
 int level = 0;
+int _mode = 0;
+
+void esp_now_mode_update(int mode)
+{
+  Serial.print("Mode ");
+  Serial.println(mode);
+  _mode = mode;
+  bleManager->updateMode(_mode);
+  bleManager->notify();
+}
 
 void setup()
 {
@@ -16,6 +26,7 @@ void setup()
 
   espNowManager = new EspNowManager();
   espNowManager->init();
+  espNowManager->setConnectionChangeCB(esp_now_mode_update);
 
   delay(500);
   Serial.println("Lights...");

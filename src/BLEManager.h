@@ -17,6 +17,7 @@ private:
 
     uint8_t batteryLevel = 0;
     uint8_t percentage = 0;
+    uint8_t mode = 0;
 
 public:
     void init();
@@ -24,6 +25,7 @@ public:
     void disconnected();
     void updateBatteryLevel(uint8_t value);
     void updatePercentage(uint8_t value);
+    void updateMode(uint8_t value);
     void notify();
 };
 
@@ -65,6 +67,24 @@ public:
         uint8_t *value = pCharacteristic->getData();
         Serial.println(*value);
         this->delegate->updatePercentage(*value);
+    }
+};
+
+class ModeCallbacks : public BLECharacteristicCallbacks
+{
+private:
+    BLEManager *delegate;
+
+public:
+    void attachDelegate(BLEManager *delegate)
+    {
+        this->delegate = delegate;
+    }
+    void onWrite(BLECharacteristic *pCharacteristic)
+    {
+        uint8_t *value = pCharacteristic->getData();
+        Serial.println(*value);
+        this->delegate->updateMode(*value);
     }
 };
 

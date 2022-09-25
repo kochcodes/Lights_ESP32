@@ -8,6 +8,10 @@ BLEDescriptor BatteryLevelDescriptor(BLEUUID((uint16_t)0x2901));
 BLECharacteristic PercentageCh(BLEUUID((uint16_t)0x2A6E), BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor PercentageDescriptor(BLEUUID((uint16_t)0x0000));
 
+#define MODE_UUUID BLEUUID((uint16_t)0x27AE)
+BLECharacteristic ModeCh(BLEUUID((uint16_t)0x2A6F), BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
+BLEDescriptor ModeDescriptor(BLEUUID((uint16_t)0x0000));
+
 void BLEManager::init()
 {
     BLEDevice::init("Lights");
@@ -34,8 +38,20 @@ void BLEManager::init()
     PercentageCh.setCallbacks(percentageCB);
     PercentageCh.addDescriptor(new BLE2902());
 
-    pServer->getAdvertising()->addServiceUUID(BATTERY_UUID);
+    pServer->getAdvertising()->addServiceUUID(PERCENTAGE_UUUID);
     percentageService->start();
+
+    BLEService *modeService = pServer->createService(MODE_UUUID);
+    modeService->addCharacteristic(&ModeCh);
+    ModeDescriptor.setValue("Light Percentage");
+    ModeCh.addDescriptor(&ModeDescriptor);
+    PercentageCallbacks *modeCB = new PercentageCallbacks();
+    modeCB->attachDelegate(this);
+    ModeCh.setCallbacks(modeCB);
+    ModeCh.addDescriptor(new BLE2902());
+
+    pServer->getAdvertising()->addServiceUUID(MODE_UUUID);
+    modeService->start();
 
     pServer->getAdvertising()->start();
 }
@@ -63,11 +79,20 @@ void BLEManager::updatePercentage(uint8_t value)
     Serial.println("Update Percentage CB in BLEManager");
     PercentageCh.setValue(&this->percentage, 1);
 }
+
+void BLEManager::updateMode(uint8_t value)
+{
+    this->mode = value;
+    Serial.println("Update Mode CB in BLEManager");
+    ModeCh.setValue(&this->mode, 1);
+}
+
 void BLEManager::notify()
 {
     if (this->bleClientConnected == true)
     {
         PercentageCh.notify();
         BatteryLevelCh.notify();
+        ModeCh.notify();
     }
 }
