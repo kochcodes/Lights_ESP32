@@ -1,3 +1,4 @@
+
 #include "./BLEManager.h"
 
 #define BATTERY_UUID BLEUUID((uint16_t)0x180F)
@@ -11,6 +12,11 @@ BLEDescriptor PercentageDescriptor(BLEUUID((uint16_t)0x0000));
 #define MODE_UUUID BLEUUID((uint16_t)0x27AE)
 BLECharacteristic ModeCh(BLEUUID((uint16_t)0x2A6F), BLECharacteristic::PROPERTY_WRITE | BLECharacteristic::PROPERTY_NOTIFY);
 BLEDescriptor ModeDescriptor(BLEUUID((uint16_t)0x0000));
+
+BLEManager::BLEManager(State *state)
+{
+    this->state = state;
+}
 
 void BLEManager::init()
 {
@@ -76,6 +82,7 @@ void BLEManager::updateBatteryLevel(uint8_t value)
 void BLEManager::updatePercentage(uint8_t value)
 {
     this->percentage = value;
+    this->state->setPercentage(value);
     Serial.println("Update Percentage CB in BLEManager");
     PercentageCh.setValue(&this->percentage, 1);
 }

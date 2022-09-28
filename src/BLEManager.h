@@ -1,15 +1,19 @@
 #ifndef __BLE_MANAGER__
 #define __BLE_MANAGER__
 
+#ifdef ESP32
+
 #include <BLEDevice.h>
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
 #include <Arduino.h>
+#include "./State.h"
 
 class BLEManager
 {
 private:
+    State *state;
     BLEServer *pServer;
     byte flags = 0b0000000000010;
 
@@ -20,6 +24,7 @@ private:
     uint8_t mode = 0;
 
 public:
+    BLEManager(State *state);
     void init();
     void connected();
     void disconnected();
@@ -87,5 +92,7 @@ public:
         this->delegate->updateMode(*value);
     }
 };
+
+#endif
 
 #endif
