@@ -129,7 +129,7 @@ void BLEManager::updateState()
     StateReceivedMessagesCh.setValue(&data3, 1);
     uint8_t mode = this->state->isSlave() ? 1 : 0;
     ModeCh.setValue(&mode, 1);
-    uint8_t routine = this->state->blink_routine;
+    uint8_t routine = this->state->getRoutine();
     RoutineCh.setValue(&routine, 1);
 }
 
@@ -140,7 +140,7 @@ void BLEManager::updateBatteryLevel(uint8_t value)
 }
 void BLEManager::setRoutine(uint8_t value)
 {
-    this->state->blink_routine = value;
+    this->state->setRoutine(value);
     Serial.println("Update Percentage CB in BLEManager");
     RoutineCh.setValue(&value, 1);
 }

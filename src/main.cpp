@@ -32,15 +32,16 @@ uint8_t blinkRoutineIndex = 0;
 
 void setup()
 {
+  Serial.begin(115200);
+  delay(500);
+
   state = new State();
 
-  Serial.begin(115200);
 #ifdef ESP32
   bleManager = new BLEManager(state);
   bleManager->init();
 #endif
 
-  delay(500);
   espNowManager = new EspNowManager(state);
   espNowManager->init();
   espNowManager->setOnStateChangeCallback(stateChangeCallback);
@@ -48,10 +49,9 @@ void setup()
   blinkRoutineManager = new BlinkRoutineManager();
 
   leds = new LED();
-  timerDelay = leds->setRoutine(blinkRoutineManager->get(blinkRoutineIndex), 0);
+  timerDelay = leds->setRoutine(blinkRoutineManager->get(state->getRoutine()), 0);
 
-  delay(500);
-  Serial.println("Lights...");
+  Serial.println("Ready...");
 }
 
 void loop()
@@ -60,7 +60,7 @@ void loop()
   if ((t - lastTime) >= timerDelay)
   {
     lastTime = t;
-    leds->setRoutine(blinkRoutineManager->get(blinkRoutineIndex), state->sync);
+    leds->setRoutine(blinkRoutineManager->get(state->getRoutine()), state->sync);
   }
 #ifdef ESP32
   bleManager->loop();

@@ -122,30 +122,41 @@ void EspNowManager::deletePeers()
 void EspNowManager::setupPeers()
 {
 #ifdef ESP32
-    esp_now_peer_info_t peerInfo = {};
-    // peerInfo.ifidx = WIFI_IF_AP;
-    peerInfo.channel = 0;
-    peerInfo.encrypt = false;
 
     for (unsigned int i = 0; i < sizeof(network_members) / ipLength; i++)
     {
-        memcpy(peerInfo.peer_addr, network_members[i], 6);
+
+        uint8_t *mac_addr = network_members[i];
+        char macStr[18];
+        Serial.print("Adding peer [");
+        // Copies the sender mac address to a string
+        snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+                 mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+        Serial.print(macStr);
+        Serial.print("] ");
+
+        esp_now_peer_info_t peerInfo = {};
+        // peerInfo.ifidx = WIFI_IF_AP;
+        peerInfo.channel = 1;
+        peerInfo.encrypt = false;
+        memcpy(peerInfo.peer_addr, mac_addr, 6);
         int res = esp_now_add_peer(&peerInfo);
+
         if (res == ESP_OK)
         {
-            Serial.println("Successfulf add peer");
+            Serial.println("successfull");
         }
         else if (res == ESP_ERR_ESPNOW_NOT_INIT)
         {
-            Serial.println("Failed to add peer, not init");
+            Serial.println("failed, esp-now not initialized");
         }
         else if (res == ESP_ERR_ESPNOW_ARG)
         {
-            Serial.println("Failed to add peer, wrong args");
+            Serial.println("failed, wrong args");
         }
         else if (res == ESP_ERR_ESPNOW_NOT_FOUND)
         {
-            Serial.println("Failed to add peer, peer not found");
+            Serial.println("failed, peer not found");
         }
     }
 #else
@@ -163,11 +174,19 @@ void EspNowManager::setupPeers()
 void EspNowManager::init()
 {
 #ifdef ESP8266
-    WiFi.disconnect();
-    WiFi.mode(WIFI_STA);
+    WiFi.disconnect(true);
 #else
-    WiFi.mode(WIFI_MODE_STA);
+    WiFi.disconnect(true, true);
 #endif
+    delay(3000);
+    Serial.println(ESP.getSdkVersion());
+#ifdef ESP8266
+    WiFi.mode(WIFI_AP_STA);
+#else
+    WiFi.mode(WIFI_AP_STA);
+#endif
+
+    WiFi.printDiag(Serial);
 
     Serial.println(WiFi.macAddress());
 
@@ -184,25 +203,34 @@ void EspNowManager::init()
 
 void EspNowManager::send()
 {
-    esp_now_message data = this->state->pack();
     for (unsigned int i = 0; i < sizeof(network_members) / ipLength; i++)
     {
-        esp_err_t result = esp_now_send(network_members[i], (uint8_t *)&data, sizeof(data));
+        esp_now_message data = this->state->pack();
+        uint8_t *mac_addr = network_members[i];
+        esp_err_t result = esp_now_send(mac_addr, (uint8_t *)&data, sizeof(data));
         if (result == 0)
         {
-            this->state->sent_messages++;
         }
-        this->state->sync = millis();
+        delay(1);
     }
+
+    this->state->sent_messages++;
+    this->state->sync = millis();
     this->state->update();
 }
 
-void EspNowManager::OnDataRecvCB(const uint8_t *mac, const uint8_t *incomingData, int len)
+void EspNowManager::OnDataRecvCB(const uint8_t *mac_addr, const uint8_t *incomingData, int len)
 {
 
     this->state->sync = millis();
     this->state->last_message_received_at = this->state->sync;
-    Serial.println("Data received");
+    char macStr[18];
+    Serial.print("Receiving message from [");
+    // Copies the sender mac address to a string
+    snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+    Serial.print(macStr);
+    Serial.println("] ");
 #ifndef ESP32
     if (!state->isSlave())
     {
@@ -216,19 +244,26 @@ void EspNowManager::OnDataRecvCB(const uint8_t *mac, const uint8_t *incomingData
     Serial.print("Bytes received: ");
     Serial.println(len);
     Serial.print("Int: ");
-    Serial.println(data.mode);
+    Serial.println(data.routine);
 
     this->state->received_messages++;
 
-    if (this->state->blink_routine != data.mode)
+    if (this->state->getRoutine() != data.routine)
     {
-        this->state->blink_routine = data.mode;
+        this->state->setRoutine(data.routine);
     }
     this->state->update();
 }
 
 void EspNowManager::OnDataSentCB(const uint8_t *mac_addr, esp_now_send_status_t sendStatus)
 {
+    char macStr[18];
+    Serial.print("Packet to: ");
+    // Copies the sender mac address to a string
+    snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
+             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
+    Serial.println(macStr);
+
     if (sendStatus == ESP_NOW_SEND_SUCCESS)
     {
         this->state->delivered_messages++;

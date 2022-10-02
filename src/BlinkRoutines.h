@@ -95,7 +95,7 @@ public:
     }
     virtual int loop(long t)
     {
-        return (t % duration <= on_state) ? LED_MAX : LED_MIN;
+        return (t % duration <= on_state) ? 0 : 255;
     }
 };
 
@@ -121,12 +121,12 @@ public:
     virtual int loop(long t)
     {
         if (t % duration <= on_state)
-            return LED_MAX;
+            return 0;
         if (t % duration <= off_state)
-            return LED_MIN;
+            return 255;
         if (t % duration <= on_state_2)
-            return LED_MAX;
-        return LED_MIN;
+            return 0;
+        return 255;
     }
 };
 

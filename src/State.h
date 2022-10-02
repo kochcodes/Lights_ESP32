@@ -5,7 +5,7 @@
 
 typedef struct esp_now_message
 {
-    int mode;
+    uint8_t routine;
 } esp_now_message;
 
 class State
@@ -21,12 +21,11 @@ public:
     uint received_messages;
     unsigned long last_message_received_at;
     unsigned long sync;
-    uint blink_routine;
 
 public:
     State()
     {
-        this->data.mode = 0;
+        this->data.routine = 0;
         this->sent_messages = 0;
         this->delivered_messages = 0;
         this->received_messages = 0;
@@ -34,7 +33,6 @@ public:
         this->slave = true;
         this->last_message_received_at = 0;
         this->sync = 0;
-        this->blink_routine = 0;
     }
     void update()
     {
@@ -74,9 +72,14 @@ public:
         // this->updates++;
         this->update();
     }
-    void setPercentage(uint8_t p)
+    uint8_t getRoutine()
     {
-        this->data.mode = p;
+        return this->data.routine;
+    }
+    void setRoutine(uint8_t p)
+    {
+        this->data.routine = p;
+        Serial.println(this->data.routine);
         this->update();
     }
     void print()
@@ -86,7 +89,7 @@ public:
         Serial.printf(" - %d delivered messages\n", this->delivered_messages);
         Serial.printf(" - %d received messages\n", this->received_messages);
         Serial.printf(" - %d updates\n", this->updates);
-        Serial.printf(" - %d last_message_received_at\n", this->last_message_received_at);
+        Serial.printf(" - %ld last_message_received_at\n", this->last_message_received_at);
     }
     esp_now_message pack()
     {
