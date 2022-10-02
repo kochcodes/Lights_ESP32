@@ -4,28 +4,31 @@
 #endif
 #include "./EspNowManager.h"
 #include "./State.h"
+#include "./BlinkRoutines.h"
+#include "./LED.h"
 
-EspNowManager *espNowManager;
 #ifdef ESP32
 BLEManager *bleManager;
 #endif
 
-long t = 0;
+EspNowManager *espNowManager;
+BlinkRoutineManager *blinkRoutineManager;
+LED *leds;
+
+unsigned long t = 0;
 int level = 0;
 int _mode = 0;
 
 State *state;
 
-void esp_now_mode_update(int mode)
+void stateChangeCallback()
 {
-  Serial.print("Mode ");
-  Serial.println(mode);
-  _mode = mode;
-#ifdef ESP32
-  bleManager->updateMode(_mode);
-  bleManager->notify();
-#endif
+  Serial.println("main:stateChangeCallback()");
 }
+
+unsigned long lastTime = 0;
+unsigned long timerDelay = 2000;
+uint8_t blinkRoutineIndex = 0;
 
 void setup()
 {
@@ -37,9 +40,15 @@ void setup()
   bleManager->init();
 #endif
 
+  delay(500);
   espNowManager = new EspNowManager(state);
   espNowManager->init();
-  espNowManager->setConnectionChangeCB(esp_now_mode_update);
+  espNowManager->setOnStateChangeCallback(stateChangeCallback);
+
+  blinkRoutineManager = new BlinkRoutineManager();
+
+  leds = new LED();
+  timerDelay = leds->setRoutine(blinkRoutineManager->get(blinkRoutineIndex), 0);
 
   delay(500);
   Serial.println("Lights...");
@@ -47,25 +56,15 @@ void setup()
 
 void loop()
 {
-  if (millis() > t)
+  long t = millis();
+  if ((t - lastTime) >= timerDelay)
   {
-    t = millis() + 1000;
-
-    level += 1;
-    if (level > 100)
-    {
-      level = 0;
-    }
-
-#ifdef ESP32
-    bleManager->updateBatteryLevel(level);
-    bleManager->notify();
-#endif
-    if (state->hasUpdate())
-    {
-      state->reset();
-      espNowManager->send();
-    }
-    espNowManager->send();
+    lastTime = t;
+    leds->setRoutine(blinkRoutineManager->get(blinkRoutineIndex), state->sync);
   }
+#ifdef ESP32
+  bleManager->loop();
+#endif
+  espNowManager->loop();
+  leds->loop();
 }
