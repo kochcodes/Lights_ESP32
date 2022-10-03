@@ -5,9 +5,7 @@
 #include <BlinkRoutines.h>
 #include <Adafruit_NeoPixel.h>
 
-#define NUM_LEDS 29
-
-// Adafruit_NeoPixel strip(NUM_LEDS, DATA_PIN, NEO_GRB + NEO_KHZ400);
+Adafruit_NeoPixel strip(NUM_LEDS, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 enum LED_STATE
 {
@@ -21,11 +19,11 @@ class LED
 public:
     LED()
     {
-        pinMode(LED_PIN, OUTPUT);
-        // strip.begin();
-        // strip.show();
-        // strip.setBrightness(50);
-        // delay(1000);
+        // pinMode(LED_PIN, OUTPUT);
+        strip.begin();
+        strip.show();
+        strip.setBrightness(50);
+        delay(1000);
     };
 
     long offset = 0;
@@ -36,12 +34,17 @@ public:
     {
         unsigned long int t = millis();
         uint8_t val = this->routine->loop(t - offset);
-        analogWrite(LED_PIN, val);
+        // analogWrite(LED_PIN, val);
+
+        strip.fill(strip.Color(val, 0, 0));
+        strip.show();
     }
 
     void synchronize(long t)
     {
         this->offset = t;
+        Serial.print("O: ");
+        Serial.println(offset);
     }
     int setRoutine(BlinkRoutine *r, long sync)
     {

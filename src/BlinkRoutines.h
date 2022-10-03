@@ -4,9 +4,6 @@
 #include <Arduino.h>
 #include <vector>
 
-#define LED_MIN 256
-#define LED_MAX 0
-
 class BlinkRoutine
 {
 
@@ -34,42 +31,49 @@ protected:
 class DoubleBlinkSemiRoutine : public BlinkRoutine
 {
 private:
-    int state_1_on = 25;
-    int state_2_off = state_1_on + 100;
-    int state_3_on = state_2_off + 25;
-    int state_4_off = state_3_on + 100;
-    int state_5_semi = state_4_off + 1200;
-    int duration = state_5_semi + 100;
+    int state_1_on;
+    int state_2_off;
+    int state_3_on;
+    int state_4_off;
+    int state_5_semi;
 
 public:
-    DoubleBlinkSemiRoutine() {}
+    DoubleBlinkSemiRoutine()
+    {
+        this->state_1_on = 25;
+        this->state_2_off = state_1_on + 100;
+        this->state_3_on = state_2_off + 25;
+        this->state_4_off = state_3_on + 100;
+        this->state_5_semi = state_4_off + 1200;
+        this->duration = state_5_semi + 100;
+    }
 
     virtual int loop(long t)
     {
-        int v = t % duration;
+        int v = t % this->duration;
         if (v < state_1_on)
         {
-            return 0;
+            return 255; // first pulse
         }
         else if (v < state_2_off)
         {
-            return 255;
+            return 0; // off after first pulse
         }
         else if (v < state_3_on)
         {
-            return 0;
+            return 255; // second pulse
         }
         else if (v < state_4_off)
         {
-            return 255;
+            return 0; // off after second pulse
         }
         else if (v < state_5_semi)
         {
-            return 250;
+            return 20; // semi on
         }
         else
         {
-            return 255;
+            return 0; // off before first pulse
         }
     }
 };
@@ -77,56 +81,59 @@ public:
 class SingleBlinkRoutine : public BlinkRoutine
 {
 private:
-    long on_state = 80;   // ms
-    long off_state = 900; // ms
+    long on_state;
+    long off_state;
 
 public:
     SingleBlinkRoutine()
     {
-        on_state = 80;                   // ms
-        off_state = 900;                 // ms
-        duration = on_state + off_state; // ms
+        this->on_state = 80;                   // ms
+        this->off_state = 900;                 // ms
+        this->duration = on_state + off_state; // ms
     }
     SingleBlinkRoutine(int on_time_in_ms, int off_time_in_ms)
     {
-        on_state = on_time_in_ms;                    // ms
-        off_state = off_time_in_ms;                  // ms
-        duration = this->on_state + this->off_state; // ms
+        on_state = on_time_in_ms;                          // ms
+        off_state = off_time_in_ms;                        // ms
+        this->duration = this->on_state + this->off_state; // ms
     }
     virtual int loop(long t)
     {
-        return (t % duration <= on_state) ? 0 : 255;
+        return (t % this->duration <= on_state) ? 255 : 0;
     }
 };
 
 class DoubleBlinkRoutine : public BlinkRoutine
 {
 private:
-    long on_state = 80;    // ms
-    long off_state = 160;  // ms
-    long on_state_2 = 240; // ms
+    long on_state;
+    long off_state;
+    long on_state_2;
 
 public:
     DoubleBlinkRoutine()
     {
+        this->on_state = 80;    // ms
+        this->off_state = 160;  // ms
+        this->on_state_2 = 240; // ms
         this->duration = 1000;
     }
     DoubleBlinkRoutine(int on_time_in_ms, int off_time_in_ms, int on_time_in_ms_2, int off_time_in_ms_2)
     {
-        on_state = on_time_in_ms;                                                       // ms
-        off_state = on_time_in_ms + off_time_in_ms;                                     // ms
-        on_state_2 = on_time_in_ms + off_time_in_ms + on_time_in_ms_2;                  // ms
-        duration = on_time_in_ms + off_time_in_ms + on_time_in_ms_2 + off_time_in_ms_2; // ms
+        this->on_state = on_time_in_ms;                 // ms
+        this->off_state = on_state + off_time_in_ms;    // ms
+        this->on_state_2 = off_state + on_time_in_ms_2; // ms
+        this->duration = on_state_2 + off_time_in_ms_2; // ms
     }
     virtual int loop(long t)
     {
-        if (t % duration <= on_state)
-            return 0;
-        if (t % duration <= off_state)
+        if (t % this->duration <= on_state)
             return 255;
-        if (t % duration <= on_state_2)
+        if (t % this->duration <= off_state)
             return 0;
-        return 255;
+        if (t % this->duration <= on_state_2)
+            return 255;
+        return 0;
     }
 };
 
@@ -143,7 +150,7 @@ public:
     }
     int loop(long t)
     {
-        return abs(((t % duration) / (duration * 1.0) * 2 * LED_MIN) - LED_MIN);
+        return abs(((t % duration) / (duration * 1.0) * 2 * 255) - 255);
     }
 };
 

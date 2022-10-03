@@ -60,11 +60,27 @@ void loop()
   if ((t - lastTime) >= timerDelay)
   {
     lastTime = t;
-    leds->setRoutine(blinkRoutineManager->get(state->getRoutine()), state->sync);
+    timerDelay = leds->setRoutine(blinkRoutineManager->get(state->getRoutine()), state->sync);
+
+    espNowManager->setSlave(state->isSlave());
+    if (state->isSlave())
+    {
+      if (state->last_message_received_at + espNowManager->wait_for_master_time <= t)
+      {
+        espNowManager->setSlave(false);
+      }
+    }
+    else
+    {
+      Serial.print("Delay:");
+      Serial.println(timerDelay);
+      Serial.print("Sync: ");
+      Serial.println(t);
+      espNowManager->send();
+    }
   }
 #ifdef ESP32
   bleManager->loop();
 #endif
-  espNowManager->loop();
   leds->loop();
 }

@@ -36,13 +36,13 @@ private:
     static const uint8_t ipLength = IP_LENGTH;
     uint8_t mac[ipLength];
     bool connected = false;
-    unsigned long wait_for_master_time = 10000; // 10s
     unsigned long last_loop = 0;
     bool initialized_mode;
 
     std::function<void(void)> onStateChangeCallback;
 
 public:
+    unsigned long wait_for_master_time = 10000; // 10s
     EspNowManager(State *state)
     {
         this->state = state;
@@ -58,7 +58,6 @@ public:
     void updatePeers();
     void deletePeers();
     void setupPeers();
-    void loop();
     void setOnStateChangeCallback(std::function<void(void)> cb)
     {
         this->onStateChangeCallback = cb;
@@ -89,26 +88,6 @@ void EspNowManager::setSlave(bool mode)
         }
     }
     this->state->update();
-}
-void EspNowManager::loop()
-{
-    unsigned long int t = millis();
-    if ((t - last_loop) >= 1500)
-    {
-        this->setSlave(this->state->isSlave());
-        last_loop = t;
-        if (this->state->isSlave())
-        {
-            if (this->state->last_message_received_at + wait_for_master_time <= t)
-            {
-                this->setSlave(false);
-            }
-        }
-        else
-        {
-            this->send();
-        }
-    }
 }
 
 void EspNowManager::deletePeers()
@@ -231,12 +210,10 @@ void EspNowManager::OnDataRecvCB(const uint8_t *mac_addr, const uint8_t *incomin
              mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
     Serial.print(macStr);
     Serial.println("] ");
-#ifndef ESP32
     if (!state->isSlave())
     {
         this->setSlave(true);
     }
-#endif
     this->connected = true;
 
     esp_now_message data;
@@ -257,19 +234,11 @@ void EspNowManager::OnDataRecvCB(const uint8_t *mac_addr, const uint8_t *incomin
 
 void EspNowManager::OnDataSentCB(const uint8_t *mac_addr, esp_now_send_status_t sendStatus)
 {
-    char macStr[18];
-    Serial.print("Packet to: ");
-    // Copies the sender mac address to a string
-    snprintf(macStr, sizeof(macStr), "%02x:%02x:%02x:%02x:%02x:%02x",
-             mac_addr[0], mac_addr[1], mac_addr[2], mac_addr[3], mac_addr[4], mac_addr[5]);
-    Serial.println(macStr);
-
     if (sendStatus == ESP_NOW_SEND_SUCCESS)
     {
         this->state->delivered_messages++;
         this->state->update();
     }
-    Serial.printf("Success rate: %d / %d\n", this->state->sent_messages, this->state->delivered_messages);
 }
 
 #ifdef ESP32
